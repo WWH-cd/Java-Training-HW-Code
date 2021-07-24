@@ -1,0 +1,3 @@
+# Auto configured classes
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+starter.DemoConfiguration

@@ -1,0 +1,137 @@
+package javaTraining.concurrency;
+
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
+
+public class ProduceConsume {
+    String text;
+    String[] wordList;
+
+    public String[] run() throws InterruptedException {
+        Worker2 worker2 = new Worker2();
+
+        String text = "Fingertips, each packed with more than a thousand sweat glands, can produce between 100 to 1,000 times more sweat than most other body parts. It might be hard to notice how sweaty they are, though, since the sweat typically evaporates from fingertips as soon as it comes out. This new device collects it before it can. \n" +
+                "\n" +
+                "The device was built to be highly absorbent. First, sweat is absorbed and converted into energy by a padding of carbon foam electrodes. The electrodes have enzymes that trigger chemical reactions between lactate and oxygen molecules in sweat, generating electricity. There's also a chip underneath the electrodes made of piezoelectric material that generates more energy when pressed.\n" +
+                "\n" +
+                "Electrical energy is stored in a small capacitor as a wearer sweats or presses on it. It can then be discharged to fuel low-powered devices.  ";
+        String[] reads = text.split(" ");
+//        List<String> list = Arrays.asList(reads);
+//        System.out.println(list);
+        String[] writes = new String[reads.length];
+
+        Thread p1 = new Thread(() -> {
+            try {
+                worker2.produce(reads);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, "p1");
+
+        Thread c1 = new Thread(() -> {
+            try {
+                worker2.consume(writes);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, "c1");
+
+        Thread c2 = new Thread(() -> {
+            try {
+                worker2.consume(writes);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }, "c2");
+
+        p1.start();
+        c1.start();
+        c2.start();
+
+        Thread.sleep(5000L);
+        System.out.println(String.join(" ", writes));
+        return writes;
+    }
+
+}
+
+class Worker2 {
+
+    private final int capacity = 20;
+    int producedUnit = 0;
+    // to track how many words have been produced
+    volatile int producedIndex = 0;
+    // the middle man to handle the data in transit
+//    Map<Integer, String> warehouse = new HashMap<>(capacity);
+    volatile Queue<String> queue = new LinkedList<String>();
+    private final ReentrantLock lock = new ReentrantLock();
+
+    public void produce(String[] input) throws InterruptedException {
+
+        boolean running = true;
+        while (running) {
+            boolean isLockAcquired = lock.tryLock();
+            if (isLockAcquired) {
+                try {
+                    System.out.println(Thread.currentThread().getName() + "::: run :::" + producedUnit);
+                    Thread.sleep(10);
+                    if (producedUnit >= capacity) {
+                        System.out.println("The warehouse is overloaded. Stop producing");
+                        lock.unlock();
+                    } else {
+                        queue.add(""+producedIndex+"&&"+input[producedIndex]);
+                        producedIndex++;
+                        producedUnit++;
+                    }
+
+                    if (producedIndex == input.length) {
+                        running = false;
+                    }
+                } finally {
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
+                }
+            } else {
+//                running = false;
+            }
+        }
+    }
+
+    public void consume(String[] output) throws InterruptedException {
+
+        boolean consuming = true;
+        while (consuming) {
+            boolean isLockAcquired = lock.tryLock();
+            if (isLockAcquired) {
+                try {
+                    System.out.println(Thread.currentThread().getName() + "::: run :::" + producedUnit);
+                    Thread.sleep(10);
+                    if (producedUnit <= 0) {
+                        lock.unlock();
+                    } else {
+                        String element = queue.poll();
+                        String[] keyVal = element.split("&&");
+                        output[Integer.parseInt(keyVal[0])] = keyVal[1];
+                        producedUnit--;
+                    }
+
+                    if (producedIndex == output.length && producedUnit == 0) {
+                        consuming = false;
+                    }
+                } finally {
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
+                }
+            } else {
+//                consuming = false;
+            }
+        }
+    }
+}
