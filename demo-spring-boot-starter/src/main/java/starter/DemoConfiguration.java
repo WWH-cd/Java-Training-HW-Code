@@ -1,6 +1,5 @@
 package starter;
 
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import starter.pojo.Klass;
@@ -10,12 +9,17 @@ import starter.pojo.Student;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Create a customized spring boot starter, in which some beans are created.
+ *
+ * Purpose of the starter: when multiple modules need those beans, they don't
+ * have to create the same beans multiple times. Those modules can inject
+ * the dependency of the starter, and call those beans.
+ */
 @Configuration
-//@ComponentScan("starter")
 public class DemoConfiguration {
 
     @Bean("student100")
-    @ConditionalOnMissingBean
     public Student getStudent100() {
         Student student = new Student();
         student.setId(100);
@@ -24,7 +28,6 @@ public class DemoConfiguration {
     }
 
     @Bean("student123")
-    @ConditionalOnMissingBean
     public Student getStudent123() {
         Student student = new Student();
         student.setId(123);
@@ -33,7 +36,6 @@ public class DemoConfiguration {
     }
 
     @Bean("class1")
-    @ConditionalOnMissingBean
     public Klass getKlass() {
         List<Student> students = new ArrayList<>();
         students.add(getStudent100());
@@ -44,7 +46,6 @@ public class DemoConfiguration {
     }
 
     @Bean("school")
-    @ConditionalOnMissingBean
     public School getSchool() {
         return new School();
     }
