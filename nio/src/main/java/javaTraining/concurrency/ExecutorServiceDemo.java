@@ -20,6 +20,7 @@ public class ExecutorServiceDemo {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
+        System.out.println("output:");
         System.out.println(String.join(" ", output));
         executorService.shutdown();
     }
